@@ -1,0 +1,123 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+enum Level {
+  CENTRAL
+  STATE
+}
+
+enum Category {
+  EDUCATION
+  AGRICULTURE
+  HEALTHCARE
+  HOUSING
+  BUSINESS_LOANS
+  SOCIAL_WELFARE
+  SKILL_DEVELOPMENT
+  WOMEN_AND_CHILD
+}
+
+enum TrackingStatus {
+  SAVED
+  IN_PROGRESS
+  APPLIED
+}
+
+model User {
+  id           String             @id @default(uuid())
+  guestToken   String             @unique @map("guest_token")
+  email        String?            @unique
+  name         String?
+  profileData  Json?              @map("profile_data")
+  savedSchemes UserSavedScheme[]
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @updatedAt @map("updated_at")
+
+  @@index([guestToken])
+  @@map("users")
+}
+
+model Scheme {
+  id                   String            @id @default(uuid())
+  title                String
+  slug                 String            @unique
+  shortDescription     String            @map("short_description")
+  fullDescription      String            @db.Text @map("full_description")
+  category             Category
+  ministry             String
+  level                Level             @default(CENTRAL)
+  state                String?           // Null for Central, State code (e.g., "UP", "MH", "KA") for State
+  benefitSummary       String            @map("benefit_summary")
+  financialValueAnnual Float             @default(0) @map("financial_value_annual")
+  directApplyUrl       String            @map("direct_apply_url")
+  deadline             DateTime?
+  isAlwaysOpen         Boolean           @default(true) @map("is_always_open")
+  eligibilityRules     Json              @map("eligibility_rules") // JSONB compound rule tree
+  isActive             Boolean           @default(true) @map("is_active")
+  documents            SchemeDocument[]
+  userTrackings        UserSavedScheme[]
+  createdAt            DateTime          @default(now()) @map("created_at")
+  updatedAt            DateTime          @updatedAt @map("updated_at")
+
+  @@index([category])
+  @@index([level])
+  @@index([state])
+  @@index([isActive])
+  @@index([financialValueAnnual(sort: Desc)])
+  @@index([eligibilityRules], type: Gin)
+  @@map("schemes")
+}
+
+model Document {
+  id               String           @id @default(uuid())
+  name             String
+  slug             String           @unique
+  description      String
+  issuingAuthority String           @map("issuing_authority")
+  downloadGuideUrl String           @map("download_guide_url")
+  schemes          SchemeDocument[]
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  @@map("documents")
+}
+
+model SchemeDocument {
+  id          String   @id @default(uuid())
+  schemeId    String   @map("scheme_id")
+  documentId  String   @map("document_id")
+  isMandatory Boolean  @default(true) @map("is_mandatory")
+  note        String?
+  scheme      Scheme   @relation(fields: [schemeId], references: [id], onDelete: Cascade)
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([schemeId, documentId])
+  @@index([schemeId])
+  @@index([documentId])
+  @@map("scheme_documents")
+}
+
+model UserSavedScheme {
+  id        String         @id @default(uuid())
+  userId    String         @map("user_id")
+  schemeId  String         @map("scheme_id")
+  status    TrackingStatus @default(SAVED)
+  notes     String?
+  appliedAt DateTime?      @map("applied_at")
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scheme    Scheme         @relation(fields: [schemeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, schemeId])
+  @@index([userId])
+  @@index([schemeId])
+  @@map("user_saved_schemes")
+}

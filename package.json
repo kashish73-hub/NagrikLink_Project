@@ -1,0 +1,34 @@
+{
+  "name": "nagriklink",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NagrikLink - Indian Government Scheme & Welfare Eligibility Engine",
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=server\" \"npm run dev --workspace=client\"",
+    "build": "npm run build --workspace=shared && npm run build --workspace=server && npm run build --workspace=client",
+    "test:engine": "npm run test:engine --workspace=server",
+    "db:migrate": "npm run db:migrate --workspace=server",
+    "db:seed": "npm run db:seed --workspace=server",
+    "db:generate": "npm run db:generate --workspace=server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "keywords": [
+    "civic-tech",
+    "eligibility-engine",
+    "government-schemes",
+    "rule-engine",
+    "react",
+    "nodejs",
+    "prisma",
+    "typescript"
+  ],
+  "author": "NagrikLink Team",
+  "license": "MIT"
+}
